@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS sapatilhas_masc (
+  id TEXT PRIMARY KEY,
+  descricao TEXT NOT NULL,
+  preco TEXT NOT NULL,
+  imagem TEXT NOT NULL,
+  link TEXT NOT NULL,
+  data_atual TEXT NOT NULL,
+  preco_anterior TEXT,
+  data_anterior TEXT
+)

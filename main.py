@@ -9,6 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 import psycopg2
 from psycopg2 import OperationalError
 
+import datetime
+
 
 def create_connection():
     conn = None
@@ -60,11 +62,12 @@ def insert_items(items, table_name):
     try:
         connection = create_connection()
         cursor = connection.cursor()
-        insert_query = f""" INSERT INTO {table_name} (id, descricao, preco, imagem, link) VALUES (%s,%s,%s,%s,%s)"""
+        insert_query = f""" INSERT INTO {table_name} (id, descricao, preco, imagem, link, data_atual) VALUES (%s, %s, %s, %s, %s, %s)"""
+        print(insert_query % items[0])
         result = cursor.executemany(insert_query, items)
         connection.commit()
         count = cursor.rowcount
-        print(count, f"Item inserio na tabela {table_name}")
+        #print(count, f"Item inserio na tabela {table_name}")
     except (Exception, OperationalError) as error:
         print("Error while selecting data from SQL{}".format(error))
     finally:
@@ -74,13 +77,15 @@ def insert_items(items, table_name):
 
 
 def update_items(items, table_name):
-    print(f"Nenhum item alterado para atualizar na tb {table_name}")
     if len(items) <= 0:
+        print(f"Nenhum item alterado para atualizar na tb {table_name}")
         return
     try:
         connection = create_connection()
         cursor = connection.cursor()
-        update_query = f""" UPDATE {table_name} SET descricao = %s, preco = %s, imagem = %s, link = %s WHERE id = %s"""
+        update_query = f""" UPDATE {table_name} SET descricao = %s, preco = %s, imagem = %s, link = %s,
+         data_atual = %s, preco_anterior = %s, data_anterior = %s 
+         WHERE id = %s"""
         result = cursor.executemany(update_query, items)
         connection.commit()
         count = cursor.rowcount
@@ -91,11 +96,6 @@ def update_items(items, table_name):
         if connection:
             cursor.close()
             connection.close()
-
-
-def invert_tuple_for_update(input_tuple):
-    return_tuple = (input_tuple[1], input_tuple[2], input_tuple[3], input_tuple[4], input_tuple[0])
-    return return_tuple
 
 
 chrome_driver = 'C:/chromedriver/chromedriver.exe'
@@ -125,13 +125,14 @@ while temNovos:
         temNovos = False
 
 produtos = []
+date_time = datetime.datetime.fromtimestamp(datetime.datetime.now().timestamp())
 for each_item in lista:
     id = each_item.get_attribute('id')
     descricao = each_item.find_element(By.CLASS_NAME, 'BoxPriceName').find_element(By.TAG_NAME, 'a').text
     preco = each_item.find_element(By.CLASS_NAME, 'BoxPriceValor').text
     imagem = each_item.find_element(By.CLASS_NAME, 'imagen_buscador').get_attribute('src')
     link = each_item.find_element(By.CLASS_NAME, 'prod_list').get_attribute('href')
-    item = (id, descricao, preco, imagem, link)
+    item = (id, descricao, preco, imagem, link, date_time)
     produtos.append(item)
     ##print(id + ' - ' + descricao + ' - ' + preco + ' - ' + link)
 
@@ -139,12 +140,15 @@ records_db = select_all('sapatilhas_masc')
 
 lista_insert = []
 lista_update = []
-for each_record in produtos:
-    if each_record[0] in records_db.keys():
-        if records_db.get(each_record[0]) != each_record:
-            lista_update.append(invert_tuple_for_update(each_record))
+for produto_site in produtos:
+    if produto_site[0] in records_db.keys():
+        produto_base = records_db.get(produto_site[0])
+        if produto_base[2] != produto_site[2]:
+            temp_tuple = (produto_site[1], produto_site[2], produto_site[3], produto_site[4], produto_site[5],
+                          produto_base[2], produto_base[5], produto_site[0])
+            lista_update.append(temp_tuple)
     else:
-        lista_insert.append(each_record)
+        lista_insert.append(produto_site)
 
 
 insert_items(lista_insert, 'sapatilhas_masc')
