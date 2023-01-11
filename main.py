@@ -8,6 +8,8 @@ from time import sleep
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+
+
 chrome_driver = 'C:/chromedriver/chromedriver.exe'
 chrome_service = Service(chrome_driver)
 chrome_options = Options()
@@ -34,9 +36,18 @@ while temNovos:
     else:
         temNovos = False
 
+items = []
 print(len(lista))
 for each_item in lista:
-    descricao= each_item.find_element(By.CLASS_NAME, 'BoxPriceName').find_element(By.TAG_NAME, 'a').text
+    id = each_item.get_attribute('id')
+    descricao = each_item.find_element(By.CLASS_NAME, 'BoxPriceName').find_element(By.TAG_NAME, 'a').text
     preco = each_item.find_element(By.CLASS_NAME, 'BoxPriceValor').text
-    print(descricao + ' - ' + preco)
+    imagem = each_item.find_element(By.CLASS_NAME, 'imagen_buscador').get_attribute('src')
+    link = each_item.find_element(By.CLASS_NAME, 'prod_list').get_attribute('href')
+    item = [descricao, preco, imagem, link]
+    items.append(item)
+    print(id + ' - ' + descricao + ' - ' + preco + ' - ' + link)
+
+
+
 browser.quit()

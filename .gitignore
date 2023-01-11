@@ -1,0 +1,2 @@
+# Git ignore para nao subir no git as credenciais
+*.credentials
