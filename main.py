@@ -11,24 +11,20 @@ from psycopg2 import OperationalError
 
 import datetime
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 def create_connection():
     conn = None
     try:
-        credentials = open('db.credentials', 'r')
-        db_name = credentials.readline().strip('\n\r')
-        db_user = credentials.readline().strip('\n\r')
-        db_password = credentials.readline().strip('\n\r')
-        db_host = credentials.readline().strip('\n\r')
-        db_port = credentials.readline().strip('\n\r')
-        credentials.close()
-
         conn = psycopg2.connect(
-            database=db_name,
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            port=db_port
+            database=os.environ.get("DB_NAME"),
+            user=os.environ.get("DB_USER"),
+            password=os.environ.get("DB_PASS"),
+            host=os.environ.get("DB_HOST"),
+            port=os.environ.get("DB_PORT")
         )
         print("Connection to PostgreSQL DB successful")
     except OperationalError as e:
