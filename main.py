@@ -59,11 +59,11 @@ def insert_items(items, table_name):
         connection = create_connection()
         cursor = connection.cursor()
         insert_query = f""" INSERT INTO {table_name} (id, descricao, preco, imagem, link, data_atual) VALUES (%s, %s, %s, %s, %s, %s)"""
-        print(insert_query % items[0])
+        #print(insert_query % items[0])
         result = cursor.executemany(insert_query, items)
         connection.commit()
         count = cursor.rowcount
-        #print(count, f"Item inserio na tabela {table_name}")
+        print(count, f"Item inserio na tabela {table_name}")
     except (Exception, OperationalError) as error:
         print("Error while selecting data from SQL{}".format(error))
     finally:
@@ -130,6 +130,7 @@ for each_item in lista:
     link = each_item.find_element(By.CLASS_NAME, 'prod_list').get_attribute('href')
     item = (id, descricao, preco, imagem, link, date_time)
     produtos.append(item)
+    #TODO Tratativa para os preços, transformar o campo na base em numerico
     ##print(id + ' - ' + descricao + ' - ' + preco + ' - ' + link)
 
 records_db = select_all('sapatilhas_masc')
@@ -151,3 +152,30 @@ insert_items(lista_insert, 'sapatilhas_masc')
 update_items(lista_update, 'sapatilhas_masc')
 
 browser.quit()
+
+
+def check_alerts(user):
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        select_query = f""" SELECT * FROM sapatilhas_masc
+            inner join alertas on sapatilhas_masc.id like alertas.id_produto
+            where alertas.usuario like '{user}'"""
+        cursor.execute(select_query)
+        alertas = cursor.fetchall()
+
+        for row in alertas:
+            print("Id = ", row[0], )
+            print("Model = ", row[1])
+            print("Current Price  = ", row[2])
+            print("Alert Price  = ", row[11], "\n")
+
+    except (Exception, OperationalError) as error:
+        print("Error while selecting data from SQL{}".format(error))
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+
+
+check_alerts('eder')
