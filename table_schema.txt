@@ -1,31 +1,34 @@
-#TODO Atualizar o id para ficar igual a tabela alertas
-#TODO Atualizar nome da tabela para produtos e nao sapatilhas_masc
-#TODO Adicionar categoria na tabela produtos
-#TODO Atualizar os campos com base em https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-foreign-key/
-
-
-#DROP TABLE IF EXISTS sapatilhas_masc;
+#DROP TABLE IF EXISTS produtos;
 #DROP TABLE IF EXISTS alertas;
 
-CREATE TABLE IF NOT EXISTS sapatilhas_masc (
-  id TEXT PRIMARY KEY,
-  descricao TEXT NOT NULL,
-  preco TEXT NOT NULL,
-  imagem TEXT NOT NULL,
-  link TEXT NOT NULL,
-  data_atual TEXT NOT NULL,
-  preco_anterior TEXT,
-  data_anterior TEXT
-)
+CREATE TABLE IF NOT EXISTS produtos (
+  id VARCHAR(255) PRIMARY KEY,
+  descricao VARCHAR(255) NOT NULL,
+  preco NUMERIC NOT NULL,
+  imagem VARCHAR(255) NOT NULL,
+  link VARCHAR(255) NOT NULL,
+  data_atual VARCHAR(255) NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS alertas (
   id INT GENERATED ALWAYS AS IDENTITY,
-  usuario TEXT NOT NULL,
-  email TEXT NOT NULL,
-  preco TEXT NOT NULL,
-  id_produto TEXT NOT NULL,
+  usuario VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  preco NUMERIC NOT NULL,
+  id_produto VARCHAR(255) NOT NULL,
   PRIMARY KEY(id),
   CONSTRAINT fk_produto
       FOREIGN KEY(id_produto)
-	  REFERENCES sapatilhas_masc(id)
-)
+	  REFERENCES produtos(id)
+);
+
+CREATE TABLE IF NOT EXISTS precos (
+	id INT GENERATED ALWAYS AS IDENTITY,
+	id_produto VARCHAR(255) NOT NULL,
+    data VARCHAR(255) NOT NULL,
+    preco NUMERIC NOT NULL,
+	PRIMARY KEY(id),
+    CONSTRAINT fk_produto
+      FOREIGN KEY(id_produto)
+	  REFERENCES produtos(id)
+);

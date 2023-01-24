@@ -5,6 +5,8 @@ from selenium.webdriver.common.by import By
 from time import sleep
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+import re
+from decimal import Decimal
 
 import psycopg2
 from psycopg2 import OperationalError
@@ -32,11 +34,11 @@ def create_connection():
     return conn
 
 
-def select_all(table_name):
+def select_all():
     try:
         connection = create_connection()
         cursor = connection.cursor()
-        select_query = "select * from {}".format(table_name)
+        select_query = "select * from produtos"
         cursor.execute(select_query)
         entries = cursor.fetchall()
         entries_dict = {}
@@ -51,19 +53,38 @@ def select_all(table_name):
             connection.close()
 
 
-def insert_items(items, table_name):
+def insert_items(items):
     if len(items) <= 0:
-        print(f"Nenhum item novo para inserir na tb {table_name}")
+        print("Nenhum item novo para inserir na tb produtos")
         return
     try:
         connection = create_connection()
         cursor = connection.cursor()
-        insert_query = f""" INSERT INTO {table_name} (id, descricao, preco, imagem, link, data_atual) VALUES (%s, %s, %s, %s, %s, %s)"""
+        insert_query = """ INSERT INTO produtos (id, descricao, preco, imagem, link, data_atual) VALUES (%s, %s, %s, %s, %s, %s)"""
         #print(insert_query % items[0])
         result = cursor.executemany(insert_query, items)
         connection.commit()
         count = cursor.rowcount
-        print(count, f"Item inserio na tabela {table_name}")
+        print(count, "Item inserio na tabela produtos")
+    except (Exception, OperationalError) as error:
+        print("Error while selecting data from SQL{}".format(error))
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        insert_query = """ INSERT INTO precos (id_produto, data, preco) VALUES (%s, %s, %s)"""
+        lista_precos = []
+        for item in items:
+            tuple_precos = (item[0], item[5], item[2])
+            lista_precos.append(tuple_precos)
+        result = cursor.executemany(insert_query, lista_precos)
+        connection.commit()
+        count = cursor.rowcount
+        print(count, "Item inserio na tabela precos")
     except (Exception, OperationalError) as error:
         print("Error while selecting data from SQL{}".format(error))
     finally:
@@ -72,20 +93,18 @@ def insert_items(items, table_name):
             connection.close()
 
 
-def update_items(items, table_name):
+def update_items(items):
     if len(items) <= 0:
-        print(f"Nenhum item alterado para atualizar na tb {table_name}")
+        print("Nenhum item alterado para atualizar na tb produtos")
         return
     try:
         connection = create_connection()
         cursor = connection.cursor()
-        update_query = f""" UPDATE {table_name} SET descricao = %s, preco = %s, imagem = %s, link = %s,
-         data_atual = %s, preco_anterior = %s, data_anterior = %s 
-         WHERE id = %s"""
+        update_query = """UPDATE produtos SET descricao = %s, preco = %s, imagem = %s, link = %s, data_atual = %s WHERE id = %s"""
         result = cursor.executemany(update_query, items)
         connection.commit()
         count = cursor.rowcount
-        print(count, f"Item atualizado na tabela {table_name}")
+        print(count, "Item atualizado na tabela produtos")
     except (Exception, OperationalError) as error:
         print("Error while selecting data from SQL{}".format(error))
     finally:
@@ -93,6 +112,27 @@ def update_items(items, table_name):
             cursor.close()
             connection.close()
 
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        insert_query = """ INSERT INTO precos (id_produto, data, preco) VALUES (%s, %s, %s)"""
+        lista_precos = []
+        for item in items:
+            tuple_precos = (item[5], item[4], item[1])
+            lista_precos.append(tuple_precos)
+        result = cursor.executemany(insert_query, lista_precos)
+        connection.commit()
+        count = cursor.rowcount
+        print(count, "Item inserio na tabela precos")
+    except (Exception, OperationalError) as error:
+        print("Error while selecting data from SQL{}".format(error))
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+
+def converter_preco(preco_str):
+    return Decimal(re.search("\d+.\d+", preco_str).group())
 
 chrome_driver = 'C:/chromedriver/chromedriver.exe'
 chrome_service = Service(chrome_driver)
@@ -125,15 +165,15 @@ date_time = datetime.datetime.fromtimestamp(datetime.datetime.now().timestamp())
 for each_item in lista:
     id = each_item.get_attribute('id')
     descricao = each_item.find_element(By.CLASS_NAME, 'BoxPriceName').find_element(By.TAG_NAME, 'a').text
-    preco = each_item.find_element(By.CLASS_NAME, 'BoxPriceValor').text
+    preco = converter_preco(each_item.find_element(By.CLASS_NAME, 'BoxPriceValor').text)
     imagem = each_item.find_element(By.CLASS_NAME, 'imagen_buscador').get_attribute('src')
     link = each_item.find_element(By.CLASS_NAME, 'prod_list').get_attribute('href')
     item = (id, descricao, preco, imagem, link, date_time)
     produtos.append(item)
-    #TODO Tratativa para os preços, transformar o campo na base em numerico
-    ##print(id + ' - ' + descricao + ' - ' + preco + ' - ' + link)
+    #print(item)
+    #break
 
-records_db = select_all('sapatilhas_masc')
+records_db = select_all()
 
 lista_insert = []
 lista_update = []
@@ -141,15 +181,14 @@ for produto_site in produtos:
     if produto_site[0] in records_db.keys():
         produto_base = records_db.get(produto_site[0])
         if produto_base[2] != produto_site[2]:
-            temp_tuple = (produto_site[1], produto_site[2], produto_site[3], produto_site[4], produto_site[5],
-                          produto_base[2], produto_base[5], produto_site[0])
+            temp_tuple = (produto_site[1], produto_site[2], produto_site[3], produto_site[4], produto_site[5], produto_site[0])
             lista_update.append(temp_tuple)
     else:
         lista_insert.append(produto_site)
 
 
-insert_items(lista_insert, 'sapatilhas_masc')
-update_items(lista_update, 'sapatilhas_masc')
+insert_items(lista_insert)
+update_items(lista_update)
 
 browser.quit()
 
@@ -158,8 +197,8 @@ def check_alerts(user):
     try:
         connection = create_connection()
         cursor = connection.cursor()
-        select_query = f""" SELECT * FROM sapatilhas_masc
-            inner join alertas on sapatilhas_masc.id like alertas.id_produto
+        select_query = f""" SELECT * FROM produtos
+            inner join alertas on produtos.id like alertas.id_produto
             where alertas.usuario like '{user}'"""
         cursor.execute(select_query)
         alertas = cursor.fetchall()
@@ -178,4 +217,5 @@ def check_alerts(user):
             connection.close()
 
 
-check_alerts('eder')
+#check_alerts('eder')
+
